@@ -6,7 +6,7 @@ Land at the airport, find people going your way, share one cab and split the far
 
 Cab fares from the airport are high when everyone rides alone. Airport CabPool matches passengers who land around the same time and head to the same destination, asks each one if they are comfortable travelling together, and connects them only when both say yes.
 
-This is **V1**: the backend and matching logic. A web UI comes next.
+This is **V1**: matching backend plus a mobile-first React UI (Vite and Framer Motion): curtain and swipe transitions, morphing photo hero, radar search, match-score rings, confetti when two riders connect. Themes are CSS variables (`frontend/src/styles.css`): add `?theme=navy`, `sage` or `signal` to the URL to preview, or change the default in `style.css`.
 
 ## HOW IT WORKS
 
@@ -20,12 +20,19 @@ Passenger details are never pulled from airlines. Everyone enters their own trip
 
 ## RUN IT
 
-Needs a JDK 11 or newer. No other dependencies.
+Needs a JDK 11 or newer, and Node 18 or newer for the UI.
 
 ```
-./run-tests.sh   # compile and run the tests
-./run.sh         # start the server on http://localhost:8080 (PORT env var to change)
+sh run-tests.sh                              # compile and run the backend tests
+cd frontend && npm install && npm run build  # build the React UI once
+cd .. && sh run.sh                           # start on http://localhost:8080 (PORT env var to change)
 ```
+
+Open http://localhost:8080 on your phone or browser. If `frontend/dist` is missing, the server falls back to a simple built-in classic UI.
+
+UI development with hot reload: run `sh run.sh` in one terminal and `cd frontend && npm run dev` in another (it proxies `/api` to port 8080).
+
+`run.sh` sets `DEMO_OTP=1`, which shows the OTP on screen because there is no SMS provider yet. Remove that variable when you add real SMS.
 
 ## API
 
@@ -43,13 +50,25 @@ Needs a JDK 11 or newer. No other dependencies.
 - `ConsentService`: mutual consent before connecting
 - `OtpService`: phone verification
 - `App`: HTTP server and routes
+- `frontend/`: the React UI (Vite, Framer Motion)
+- `src/main/resources/static`: classic fallback UI (plain HTML, CSS, JS)
 - `src/test`: tests for matching, consent, OTP and JSON parsing
 
 ## ROADMAP
 
-- **V1.1** Web UI for sign-up, matches and consent
+- **V1.1** Free live deploy (a multi-stage Dockerfile is included, so Render or Railway can run it)
 - **V2** PostgreSQL storage, SMS OTP, live flight status API so the window shifts when a flight is delayed
 - **V2** Real-time notifications (WebSockets, Firebase push)
 - **V3** Route-overlap matching with maps, UPI fare split
 - **V3** Safety: ID verification, women-only pools, trust ratings, live trip share, SOS
 - **Later** Demand prediction by time and route
+
+## PHOTO CREDITS
+
+Free-to-use photos from Unsplash (Unsplash License), loaded from their CDN:
+
+- Airplane approaching runway at sunset: https://unsplash.com/photos/airplane-approaching-airport-runway-at-sunset-BjHg_KRMfp4
+- Orange taxi on a night street: https://unsplash.com/photos/an-orange-taxi-cab-driving-down-a-street-at-night-VUiuJYV5mhc
+- Taxi on a city street at night: https://unsplash.com/photos/a-taxi-cab-driving-down-a-city-street-at-night-nRdajtyXpv0
+
+Fonts: Cormorant Garamond and Sora (Google Fonts, OFL). Animation: Framer Motion.
