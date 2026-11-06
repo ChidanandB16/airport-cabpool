@@ -6,7 +6,11 @@ Land at the airport, find people going your way, share one cab and split the far
 
 Cab fares from the airport are high when everyone rides alone. Airport CabPool matches passengers who land around the same time and head to the same destination, asks each one if they are comfortable travelling together, and connects them only when both say yes.
 
-This is **V1**: matching backend plus a minimal mobile-first React UI (Vite and Framer Motion): warm off-white palette, black type with one orange accent, sliding screen transitions, a soft high-key airliner photo hero with an animated line-art route and destination dot, radar search and match rings.
+This is **V1**: matching backend plus a minimal mobile-first React UI (Vite, React Three Fiber, Framer Motion): warm off-white palette, black type with one orange accent, sliding screen transitions, a cinematic golden-hour jet hero with engine glow, a pinned 3D scroll story where an airliner flies past and your cab rolls in, smooth Lenis scrolling, radar search and match rings.
+
+## LIVE
+
+https://airport-cabpool-production.up.railway.app (Railway, redeploys on every push to main)
 
 ## HOW IT WORKS
 
@@ -63,10 +67,15 @@ UI development with hot reload: run `sh run.sh` in one terminal and `cd frontend
 - **V3** Safety: ID verification, women-only pools, trust ratings, live trip share, SOS
 - **Later** Demand prediction by time and route
 
-## ART AND PHOTO CREDITS
+## ART, PHOTO AND CODE CREDITS
 
 Hero photo, free to use from Unsplash (Unsplash License), loaded from their CDN:
 
-- Airliner on final approach at dusk: https://unsplash.com/photos/airplane-approaching-airport-runway-at-sunset-BjHg_KRMfp4
+- Gulfstream at golden hour by Chris Leipelt: https://unsplash.com/photos/architectural-photography-of-white-aircraft-6w_dYdazo20
 
-The route and jet line art is hand-drawn SVG. Fonts: Sora and Cormorant Garamond italic (Google Fonts, OFL). Animation: Framer Motion.
+3D models, both CC0 1.0, loaded from tevy.dev's CDN at runtime:
+
+- Twin-Jet Airliner: https://tevy.dev/models/narrowbody-airliner
+- Yellow Taxi Cab: https://tevy.dev/models/yellow-taxi
+
+Fonts: Sora and Cormorant Garamond italic (Google Fonts, OFL). Animation: Framer Motion (MIT), Three.js / React Three Fiber / drei (MIT), Lenis smooth scroll (MIT, Studio Freight). The perspective tilt card follows Aceternity UI's Container Scroll Animation pattern (MIT).
