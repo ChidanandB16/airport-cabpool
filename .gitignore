@@ -1,2 +1,4 @@
 out/
 *.class
+node_modules/
+frontend/dist/
