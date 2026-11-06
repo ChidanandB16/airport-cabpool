@@ -53,8 +53,10 @@ public final class App {
             Map<String, String> in = body.isEmpty() ? Map.of() : Json.parseFlat(body);
 
             if (method.equals("POST") && p[0].equals("otp") && p.length == 2 && p[1].equals("request")) {
-                otp.issue(need(in, "phone"));
-                send(ex, 200, "{\"ok\":true}");
+                String code = otp.issue(need(in, "phone"));
+                // Demo mode only: return the code so the UI works without an SMS provider.
+                boolean demo = System.getenv("DEMO_OTP") != null;
+                send(ex, 200, demo ? "{\"ok\":true,\"devCode\":\"" + code + "\"}" : "{\"ok\":true}");
             } else if (method.equals("POST") && p[0].equals("otp") && p.length == 2 && p[1].equals("verify")) {
                 boolean ok = otp.verify(need(in, "phone"), need(in, "code"));
                 send(ex, ok ? 200 : 400, "{\"verified\":" + ok + "}");
@@ -134,13 +136,17 @@ public final class App {
 
     private void serveStatic(HttpExchange ex, String path) throws IOException {
         if (path.equals("/")) path = "/index.html";
-        try (InputStream in = App.class.getResourceAsStream("/static" + path)) {
+        // Prefer the built React app (frontend/dist), fall back to the classic UI on the classpath.
+        java.nio.file.Path dist = java.nio.file.Paths.get(System.getenv().getOrDefault("STATIC_DIR", "frontend/dist"));
+        java.nio.file.Path file = dist.resolve(path.substring(1)).normalize();
+        InputStream fs = file.startsWith(dist) && java.nio.file.Files.isRegularFile(file) ? java.nio.file.Files.newInputStream(file) : null;
+        try (InputStream in = fs != null ? fs : App.class.getResourceAsStream("/static" + path)) {
             if (in == null || path.contains("..")) {
                 send(ex, 404, "not found");
                 return;
             }
             byte[] b = in.readAllBytes();
-            ex.getResponseHeaders().set("Content-Type", path.endsWith(".html") ? "text/html; charset=utf-8" : "text/plain");
+            ex.getResponseHeaders().set("Content-Type", path.endsWith(".html") ? "text/html; charset=utf-8" : path.endsWith(".css") ? "text/css" : path.endsWith(".js") ? "application/javascript" : "text/plain");
             ex.sendResponseHeaders(200, b.length);
             ex.getResponseBody().write(b);
         } finally {
@@ -159,4 +165,4 @@ public final class App {
         ex.getResponseBody().write(b);
         ex.close();
     }
-}
+    }
