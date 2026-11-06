@@ -1,8 +1,13 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useMotionValue, useSpring, useTransform } from 'framer-motion';
+import React, { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion, useMotionValue, useScroll, useSpring, useTransform } from 'framer-motion';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
+import { ContactShadows, useGLTF } from '@react-three/drei';
+import { KTX2Loader } from 'three-stdlib';
+import * as THREE from 'three';
+import Lenis from 'lenis';
 import { api } from './api.js';
 
-const HERO_PHOTO = 'https://images.unsplash.com/photo-1770705724072-1b784f1f2202?auto=format&fit=crop&w=1400&q=70';
+const HERO_PHOTO = 'https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=2000&q=75';
 
 const ease = [0.16, 1, 0.3, 1];
 const screen = {
@@ -11,21 +16,6 @@ const screen = {
   exit: { x: '-35%', opacity: 0, transition: { duration: 0.55, ease: [0.76, 0, 0.24, 1] } }
 };
 const item = { initial: { opacity: 0, y: 22 }, animate: { opacity: 1, y: 0, transition: { duration: 0.9, ease } } };
-
-// ---------- line art ----------
-// Thin line-art airliner + animated route, single orange accent.
-function LineRoute() {
-  return (
-    <svg className="linejet" viewBox="0 0 390 240" fill="none" aria-hidden>
-      <motion.path d="M18 208 C 120 150, 235 120, 372 96" stroke="#161616" strokeWidth="1" strokeDasharray="2 7" strokeLinecap="round"
-        initial={{ pathLength: 0 }} animate={{ pathLength: 1 }} transition={{ duration: 2.4, ease: 'easeInOut', delay: 0.7 }} opacity=".7" />
-      <motion.circle cx="18" cy="208" r="3" stroke="#161616" strokeWidth="1" fill="none" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 0.7, duration: 0.5, ease }} />
-      <motion.circle cx="372" cy="96" r="4.5" fill="#F24E1E" initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ delay: 2.8, duration: 0.5, type: 'spring', stiffness: 300, damping: 14 }} />
-      <motion.circle cx="372" cy="96" r="4.5" stroke="#F24E1E" strokeWidth="1" fill="none"
-        initial={{ scale: 1, opacity: 0 }} animate={{ scale: [1, 2.4], opacity: [0.7, 0] }} transition={{ delay: 3, duration: 2.2, repeat: Infinity, ease: 'easeOut' }} />
-    </svg>
-  );
-}
 
 // ---------- small pieces ----------
 function SplitText({ children, className = '', delay = 0 }) {
@@ -94,6 +84,141 @@ function Logo() {
   return <div className="logo">CabPool<i /></div>;
 }
 
+// ---------- 3D scroll story ----------
+// Pinned WebGL scrollytelling (WAMOS / Qantas Dreamliner pattern on Awwwards):
+// the view is pinned while scroll drives a CC0 3D airliner across the sky,
+// then a CC0 3D taxi rolls in and stops at the orange pickup dot.
+const ktx2 = new KTX2Loader().setTranscoderPath('https://cdn.jsdelivr.net/npm/three@0.187.0/examples/jsm/libs/basis/');
+const useModel = path => {
+  const gl = useThree(s => s.gl);
+  return useGLTF(path, true, true, loader => {
+    ktx2.detectSupport(gl);
+    loader.setKTX2Loader(ktx2);
+  });
+};
+
+const clamp01 = v => Math.max(0, Math.min(1, v));
+const seg = (p, a, b) => clamp01((p - a) / (b - a));
+const easeIO = t => t * t * (3 - 2 * t);
+
+function PlaneRig({ progress }) {
+  const { scene } = useModel('https://tevy.dev/models/narrowbody-airliner/v1/lod1.glb');
+  const ref = useRef();
+  // model has baked-in offset + non-meter units: normalise to a 2.6-unit fuselage centred at origin
+  const norm = useMemo(() => {
+    scene.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(scene);
+    const size = box.getSize(new THREE.Vector3());
+    const center = box.getCenter(new THREE.Vector3());
+    return { s: 2.0 / Math.max(size.x, size.z), center };
+  }, [scene]);
+  useFrame((state, dt) => {
+    const g = ref.current;
+    if (!g) return;
+    const p = progress.get();
+    const t = easeIO(seg(p, 0.02, 0.56));
+    const d = 4.5;
+    g.position.x = THREE.MathUtils.damp(g.position.x, THREE.MathUtils.lerp(-2.9, 3.1, t), d, dt);
+    g.position.y = THREE.MathUtils.damp(g.position.y, THREE.MathUtils.lerp(1.7, 0.15, t) + Math.sin(t * Math.PI * 2.2) * 0.08, d, dt);
+    g.rotation.z = THREE.MathUtils.damp(g.rotation.z, -0.18 * (1 - t), d, dt);
+    g.rotation.x = THREE.MathUtils.damp(g.rotation.x, 0.06 * Math.sin(t * Math.PI), d, dt);
+    g.visible = p < 0.62;
+  });
+  return (
+    <group ref={ref} position={[-5.4, 1.7, 0]} rotation={[0, Math.PI / 2, 0]}>
+      <group scale={norm.s} position={[-norm.center.x * norm.s, -norm.center.y * norm.s, -norm.center.z * norm.s]}>
+        <primitive object={scene} />
+      </group>
+    </group>
+  );
+}
+
+function TaxiRig({ progress }) {
+  const { scene } = useModel('https://tevy.dev/models/yellow-taxi/v1/lod1.glb');
+  const ref = useRef();
+  useFrame((state, dt) => {
+    const g = ref.current;
+    if (!g) return;
+    const p = progress.get();
+    const t = easeIO(seg(p, 0.62, 0.97));
+    const d = 4.5;
+    g.position.x = THREE.MathUtils.damp(g.position.x, THREE.MathUtils.lerp(-3.0, -0.1, t), d, dt);
+    g.position.y = -1.18 + Math.abs(Math.sin(t * Math.PI * 4)) * 0.045 * (1 - t);
+    g.rotation.z = -0.02 * Math.sin(t * Math.PI * 2) * (1 - t);
+    g.visible = p > 0.56;
+  });
+  return <primitive ref={ref} object={scene} scale={0.5} position={[-5.6, -1.18, 0.2]} rotation={[0, Math.PI / 2, 0]} />;
+}
+
+function DestDot({ progress }) {
+  const ref = useRef();
+  useFrame(state => {
+    const g = ref.current;
+    if (!g) return;
+    const a = seg(progress.get(), 0.9, 0.97);
+    g.scale.setScalar(Math.max(0.0001, a * 0.13 * (1 + Math.sin(state.clock.elapsedTime * 3.4) * 0.22)));
+  });
+  return (
+    <mesh ref={ref} position={[1.42, -1.08, 0.2]}>
+      <sphereGeometry args={[1, 24, 24]} />
+      <meshBasicMaterial color="#F24E1E" toneMapped={false} />
+    </mesh>
+  );
+}
+
+function StoryScene({ progress }) {
+  return (
+    <Canvas className="story-canvas" camera={{ position: [0, 0.35, 9.5], fov: 34 }} gl={{ alpha: true, antialias: true }} dpr={[1, 2]}>
+      <ambientLight intensity={1.15} />
+      <directionalLight position={[3.5, 5, 4]} intensity={1.35} />
+      <Suspense fallback={null}>
+        <PlaneRig progress={progress} />
+        <TaxiRig progress={progress} />
+        <DestDot progress={progress} />
+        <ContactShadows position={[0, -1.42, 0]} opacity={0.34} scale={15} blur={2.6} far={3.2} color="#161616" />
+      </Suspense>
+    </Canvas>
+  );
+}
+
+function FlightStory() {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start start', 'end end'] });
+  const cap1o = useTransform(scrollYProgress, [0.05, 0.15, 0.36, 0.46], [0, 1, 1, 0]);
+  const cap1y = useTransform(scrollYProgress, [0.05, 0.15], [20, 0]);
+  const cap2o = useTransform(scrollYProgress, [0.62, 0.72], [0, 1]);
+  const cap2y = useTransform(scrollYProgress, [0.62, 0.72], [20, 0]);
+  return (
+    <div className="story" ref={ref}>
+      <div className="story-stage">
+        <StoryScene progress={scrollYProgress} />
+        <motion.div className="story-cap" style={{ opacity: cap1o, y: cap1y }}>
+          <h3>You land.</h3>
+        </motion.div>
+        <motion.div className="story-cap" style={{ opacity: cap2o, y: cap2y }}>
+          <h3>Your cab's <span className="accent-serif">already waiting.</span></h3>
+        </motion.div>
+      </div>
+    </div>
+  );
+}
+
+// Aceternity UI "Container Scroll Animation" pattern (MIT):
+// a card tilts in 3D perspective and settles flat as it scrolls into view.
+function TiltCard({ children }) {
+  const ref = useRef(null);
+  const { scrollYProgress } = useScroll({ target: ref, offset: ['start end', 'center center'] });
+  const rotateX = useTransform(scrollYProgress, [0, 1], [18, 0]);
+  const scale = useTransform(scrollYProgress, [0, 1], [0.9, 1]);
+  return (
+    <div ref={ref} style={{ perspective: 1000 }}>
+      <motion.div className="tilt-card" style={{ rotateX, scale, transformOrigin: 'center top' }}>
+        {children}
+      </motion.div>
+    </div>
+  );
+}
+
 // ---------- screens ----------
 function Welcome({ next }) {
   const mx = useMotionValue(0), my = useMotionValue(0);
@@ -106,18 +231,29 @@ function Welcome({ next }) {
     return () => { removeEventListener('pointermove', m); removeEventListener('deviceorientation', d); };
   }, [mx, my]);
   return (
-    <motion.section className="screen hero" {...screen}>
-      <motion.div className="hero-bg" style={{ x: bx, y: by, backgroundImage: `linear-gradient(180deg, rgba(238,237,233,.6), rgba(238,237,233,.1) 34%, rgba(238,237,233,.06) 58%, rgba(238,237,233,.96) 92%), url(${HERO_PHOTO})` }} />
-      <motion.p className="eyebrow" variants={item}><b />Airport cab pooling</motion.p>
-      <h1 className="hero-title">
-        <SplitText delay={0.15}>Land. Match.</SplitText><br />
-        <span className="accent-serif"><SplitText delay={0.5}>Ride together.</SplitText></span>
-      </h1>
-      <motion.div className="hero-stage" variants={item}><LineRoute /></motion.div>
-      <motion.p className="sub" variants={item}>One cab from the airport, split fairly with people landing next to you.</motion.p>
-      <motion.div className="cta-row" variants={item}>
-        <Btn onClick={next}>Get started &rarr;</Btn>
-      </motion.div>
+    <motion.section className="screen hero-story" {...screen}>
+      <div className="hero-panel">
+        <motion.div className="hero-bg" style={{ x: bx, y: by, backgroundImage: `linear-gradient(180deg, rgba(238,237,233,.72), rgba(238,237,233,.04) 32%, rgba(238,237,233,.04) 55%, rgba(238,237,233,.97) 90%), url(${HERO_PHOTO})` }}>
+          <div className="engine-glow" />
+        </motion.div>
+        <motion.p className="eyebrow" variants={item}><b />Airport cab pooling</motion.p>
+        <h1 className="hero-title">
+          <SplitText delay={0.15}>Land. Match.</SplitText><br />
+          <span className="accent-serif"><SplitText delay={0.5}>Ride together.</SplitText></span>
+        </h1>
+        <motion.p className="sub" variants={item}>One cab from the airport, split fairly with people landing next to you.</motion.p>
+        <motion.div className="cta-row" variants={item}>
+          <Btn onClick={next}>Get started &rarr;</Btn>
+        </motion.div>
+        <motion.div className="scroll-hint" variants={item}><span>scroll</span><i /></motion.div>
+      </div>
+      <FlightStory />
+      <TiltCard>
+        <p className="eyebrow"><b />One cab, split fairly</p>
+        <h3 className="final-title">Split the ride, <span className="accent-serif">not the wait.</span></h3>
+        <p className="sub">Same flight window, same destination, one fair fare.</p>
+        <div className="cta-row"><Btn onClick={next}>Get started &rarr;</Btn></div>
+      </TiltCard>
     </motion.section>
   );
 }
@@ -293,6 +429,23 @@ function Curtain({ k }) {
 // ---------- app ----------
 export default function App() {
   const [step, setStep] = useState('welcome'), [phone, setPhone] = useState(''), [rid, setRid] = useState(null), [myLanding, setLanding] = useState('00:00'), [burst, setBurst] = useState(0);
+  const lenisRef = useRef(null);
+
+  // Lenis smooth scrolling (MIT, Studio Freight) - the Awwwards-standard scroll feel.
+  useEffect(() => {
+    const lenis = new Lenis({ lerp: 0.09, smoothWheel: true });
+    lenisRef.current = lenis;
+    let raf;
+    const loop = t => { lenis.raf(t); raf = requestAnimationFrame(loop); };
+    raf = requestAnimationFrame(loop);
+    return () => { cancelAnimationFrame(raf); lenis.destroy(); };
+  }, []);
+
+  useEffect(() => {
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true });
+    else window.scrollTo(0, 0);
+  }, [step]);
+
   const joined = (id, landing) => { setRid(id); setLanding(landing); setStep('radar'); setTimeout(() => setStep('matches'), 3000); };
   return (
     <>
