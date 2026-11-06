@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Airport CabPool</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head><body>
+<div class="bg"></div><div class="stars"></div><div class="orb a"></div><div class="orb b"></div>
+<main id="app">
+
+<section id="s-welcome" class="screen active">
+  <div class="hero"><svg class="cab" viewBox="0 0 40 24" width="40" height="24" aria-hidden="true"><path d="M3 16 L7 8 Q8 5 11 5 H27 Q30 5 32 8 L37 14 Q39 15 39 18 V19 H3 Z" fill="#FF8A3D"/><rect x="11" y="8" width="8" height="5" rx="1" fill="#0B1020" opacity=".6"/><rect x="21" y="8" width="8" height="5" rx="1" fill="#0B1020" opacity=".6"/><circle cx="12" cy="19" r="3.5" fill="#0B1020" stroke="#fff" stroke-width="1.5"/><circle cx="30" cy="19" r="3.5" fill="#0B1020" stroke="#fff" stroke-width="1.5"/></svg>
+    <svg viewBox="0 0 320 140" class="route" aria-hidden="true">
+      <path id="rp" d="M10 120 C 90 10, 200 10, 310 100" fill="none" stroke="url(#g)" stroke-width="2.5" stroke-dasharray="6 7"/>
+      <defs><linearGradient id="g" x1="0" x2="1"><stop offset="0" stop-color="#7C5CFF"/><stop offset="1" stop-color="#FF8A3D"/></linearGradient></defs>
+      <circle cx="10" cy="120" r="5" fill="#7C5CFF"/><circle cx="310" cy="100" r="5" fill="#FF8A3D"/>
+      <g class="plane"><text font-size="22" text-anchor="middle" dy="7">&#9992;</text>
+        <animateMotion dur="5s" repeatCount="indefinite" rotate="auto"><mpath href="#rp"/></animateMotion></g>
+    </svg>
+  </div>
+  <div class="logo"><b>&#9992;</b> Airport CabPool</div>
+  <h1><span class="w" style="animation-delay:.2s">Land.</span> <span class="w" style="animation-delay:.4s">Match.</span><br><span class="grad w" style="animation-delay:.6s">Share the cab.</span></h1>
+  <p class="sub">Meet people landing near you and going your way. Split the fare. Connect only if everyone is comfortable.</p>
+  <button class="btn" data-go="s-phone">Get started</button>
+</section>
+
+<section id="s-phone" class="screen">
+  <div class="steps"><i class="on"></i><i></i><i></i></div><h2>Verify your phone</h2>
+  <p class="sub">We use it to keep the pool real. Only shared after you both say yes.</p>
+  <div class="card">
+    <label>Phone number<input id="phone" inputmode="tel" placeholder="98765 43210"></label>
+    <button class="btn" id="sendOtp">Send OTP</button>
+    <div id="otpBox" hidden>
+      <label>6-digit OTP<input id="code" inputmode="numeric" maxlength="6" placeholder="------"></label>
+      <p class="hint" id="otpHint"></p>
+      <button class="btn" id="verifyOtp">Verify</button>
+    </div>
+  </div>
+  <p class="err" id="e-phone"></p>
+</section>
+
+<section id="s-trip" class="screen">
+  <div class="steps"><i class="on"></i><i class="on"></i><i></i></div><h2>Your trip</h2>
+  <div class="card">
+    <label>Name<input id="name" placeholder="Your name"></label>
+    <label>Flight number<input id="flight" placeholder="6E 204"></label>
+    <div class="two">
+      <label>Date<input id="date" type="date"></label>
+      <label>Landing time<input id="landing" type="time"></label>
+    </div>
+    <label>Destination<input id="dest" placeholder="e.g. Indiranagar"></label>
+    <button class="btn" id="findBtn">Find people going my way</button>
+  </div>
+  <p class="err" id="e-trip"></p>
+</section>
+
+<section id="s-radar" class="screen center">
+  <div class="radar"><span></span><span></span><span></span><b class="dot"></b><b class="dot"></b><b class="dot"></b><i>&#9992;</i></div>
+  <h2>Looking for your people</h2>
+  <p class="sub" id="radarSub">Checking riders landing within 30 minutes, same destination.</p>
+</section>
+
+<section id="s-matches" class="screen">
+  <div class="steps"><i class="on"></i><i class="on"></i><i class="on"></i></div><h2>People going your way</h2>
+  <p class="sub" id="summary"></p>
+  <div id="list"></div>
+  <button class="btn ghost" id="refresh">Refresh</button>
+</section>
+
+</main>
+<canvas id="confetti"></canvas>
+<script src="/app.js"></script>
+</body></html>
