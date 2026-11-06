@@ -6,7 +6,7 @@ Land at the airport, find people going your way, share one cab and split the far
 
 Cab fares from the airport are high when everyone rides alone. Airport CabPool matches passengers who land around the same time and head to the same destination, asks each one if they are comfortable travelling together, and connects them only when both say yes.
 
-This is **V1**: matching backend plus a mobile-first React UI (Vite and Framer Motion): curtain and swipe transitions, morphing photo hero, radar search, match-score rings, confetti when two riders connect. Themes are CSS variables (`frontend/src/styles.css`): add `?theme=navy`, `sage` or `signal` to the URL to preview, or change the default in `style.css`.
+This is **V1**: matching backend plus a minimal mobile-first React UI (Vite and Framer Motion): warm off-white palette, black type with one orange accent, sliding screen transitions, a soft high-key airliner photo hero with an animated line-art route and destination dot, radar search and match rings.
 
 ## HOW IT WORKS
 
@@ -63,12 +63,10 @@ UI development with hot reload: run `sh run.sh` in one terminal and `cd frontend
 - **V3** Safety: ID verification, women-only pools, trust ratings, live trip share, SOS
 - **Later** Demand prediction by time and route
 
-## PHOTO CREDITS
+## ART AND PHOTO CREDITS
 
-Free-to-use photos from Unsplash (Unsplash License), loaded from their CDN:
+Hero photo, free to use from Unsplash (Unsplash License), loaded from their CDN:
 
-- Airplane approaching runway at sunset: https://unsplash.com/photos/airplane-approaching-airport-runway-at-sunset-BjHg_KRMfp4
-- Orange taxi on a night street: https://unsplash.com/photos/an-orange-taxi-cab-driving-down-a-street-at-night-VUiuJYV5mhc
-- Taxi on a city street at night: https://unsplash.com/photos/a-taxi-cab-driving-down-a-city-street-at-night-nRdajtyXpv0
+- Airliner on final approach at dusk: https://unsplash.com/photos/airplane-approaching-airport-runway-at-sunset-BjHg_KRMfp4
 
-Fonts: Cormorant Garamond and Sora (Google Fonts, OFL). Animation: Framer Motion.
+The route and jet line art is hand-drawn SVG. Fonts: Sora and Cormorant Garamond italic (Google Fonts, OFL). Animation: Framer Motion.
